@@ -3,12 +3,6 @@ Tidy Tuesday: Roller coaster injuries :roller\_coaster:
 September 9, 2019
 
 ``` r
-knitr::opts_chunk$set(echo = TRUE,
-                      warning = FALSE,
-                      message = FALSE)
-```
-
-``` r
 library(dplyr)
 library(readr)
 library(skimr)
@@ -109,7 +103,7 @@ tx_injuries %>%
   injuries_by_token_plot("cause_of_injury")
 ```
 
-![](tidy_tuesday_script_files/figure-gfm/cause-of-injury-plot-1.png)<!-- -->
+![](2019-09-09-roller_coasters_files/figure-gfm/cause-of-injury-plot-1.png)<!-- -->
 
 ### Top ten words for `body_part`, split by gender
 
@@ -122,7 +116,7 @@ tx_injuries %>%
   injuries_by_token_plot("body_part")
 ```
 
-![](tidy_tuesday_script_files/figure-gfm/body-part-plot-1.png)<!-- -->
+![](2019-09-09-roller_coasters_files/figure-gfm/body-part-plot-1.png)<!-- -->
 
 ### Top ten words for `alleged_injury`, split by gender
 
@@ -135,7 +129,7 @@ tx_injuries %>%
   injuries_by_token_plot("alleged_injury")
 ```
 
-![](tidy_tuesday_script_files/figure-gfm/alleged-injury-plot-1.png)<!-- -->
+![](2019-09-09-roller_coasters_files/figure-gfm/alleged-injury-plot-1.png)<!-- -->
 
 ``` r
 ggsave("alleged_injury_plot.png", device = "png", width = 8, height = 6, units = "in", dpi = 500)
