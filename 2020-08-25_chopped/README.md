@@ -68,7 +68,7 @@ ggsave(
   "ratings_dist.png",
   device = "png",
   width = 6,
-  height = 8,
+  height = 5,
   units = "in",
   dpi = 500)
 ```
