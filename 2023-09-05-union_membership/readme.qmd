@@ -2,7 +2,7 @@
 title: "Union Membership Wages"
 author: "Sharleen Weatherley"
 date: "2023-09-05"
-format: html
+format: gfm
 execute:
   echo: true
   warning: false
