@@ -1,0 +1,127 @@
+---
+title: "Union Membership Wages"
+author: "Sharleen Weatherley"
+date: "2023-09-05"
+format: html
+execute:
+  echo: true
+  warning: false
+---
+
+## Setup
+
+First I will call the necessary libraries and read in the data, found at the [`tidytuesday` Github repository](https://github.com/rfordatascience/tidytuesday/tree/master/data/2023/2023-09-05).
+
+This data was curated by [unionstats.com](unionstats.com).
+
+```{r}
+#| output: false
+
+# Library calls
+library(dplyr)
+library(visdat)
+library(skimr)
+library(ggplot2)
+library(janitor)
+library(stringr)
+
+# Reading the data in
+wages <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-09-05/wages.csv')
+
+
+# Set graph theme
+theme_set(theme_minimal()) +
+  theme_update(
+    plot.caption = element_text(hjust = 0))
+
+```
+
+
+## Initial thoughts
+
+From the data dictionary on the Github repo, it looks like the `wages` dataset will be the most interesting data for me, so I will start by getting an overview of what the dataset looks like.
+
+## Exploring  
+
+```{r}
+
+wages |> 
+  vis_dat()
+```
+
+
+Good, from this `vis_dat()` graph, I can see there's no missing variables. The data is nice and cleaned.
+
+Now I will use the `skimr::skim()` function on the data.
+
+```{r}
+
+wages |> 
+  skim()
+```
+
+Even from this `skim()` function, I can see that union wages tend to be higher than non-union wages!
+
+
+I'll filter for all the workers, and create a graph to visualize this difference over the years.
+
+```{r}
+
+
+wages |> 
+  filter(facet == "all wage and salary workers") |> 
+  ggplot(aes(x = year)) +
+  geom_point(aes(y = union_wage,
+                 color = "Union wage")) +
+  geom_point(aes(y = nonunion_wage,
+                 color = "Non-union wage")) +
+  labs(x = "Year",
+       y = "Average wages ($)",
+       color = "Legend",
+       caption = "How wages for unionized and non-unionized workers compare over the years.") +
+  scale_color_manual(values = c("#1dc58f",
+                                "#d10707"))
+
+
+```
+
+
+## `facet` values
+
+So what other values can the `facet` column have? I'll use `janitor`'s `tabyl()` function to check it out:
+
+```{r}
+
+wages |> 
+  janitor::tabyl(facet)
+
+```
+
+I'm interested to see if the demographics of gender and race show any differences of wages over the years:
+
+```{r}
+
+wages |> 
+  filter(str_detect(facet, "male")) |>
+  mutate(facet = facet |> 
+           str_remove("demographics: ") |>
+           str_to_sentence()) |> 
+  filter(!(facet %in% c("Male", "Female"))) |> 
+  ggplot(aes(x = year)) +
+  geom_point(aes(y = union_wage,
+                 color = "Union wage")) +
+  geom_point(aes(y = nonunion_wage,
+                 color = "Non-union wage")) +
+  labs(x = "Year",
+       y = "Average wages ($)",
+       color = "Legend",
+       caption = "How wages for unionized and non-unionized workers compare over the years, split by gender and race.") +
+  scale_color_manual(values = c("#1dc58f",
+                                "#d10707")) +
+  facet_wrap(facet ~ ., ncol = 2)
+
+```
+
+
+
+
