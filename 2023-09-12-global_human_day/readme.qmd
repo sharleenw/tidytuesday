@@ -1,0 +1,188 @@
+---
+title: "The Global Human Day"
+author: "Sharleen Weatherley"
+date: "2023-09-21"
+format: gfm
+execute:
+  echo: true
+  warning: false
+  cache: true
+---
+
+## Setup
+
+First I will call the necessary libraries and read in the data, found at the [`tidytuesday` Github repository](https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-09-12/readme.md).
+
+
+```{r}
+#| output: false
+
+# Library calls
+library(dplyr)
+library(janitor)
+library(tidyr)
+library(ggplot2)
+library(forcats)
+library(knitr)
+
+# Reading the data in
+all_countries <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-09-12/all_countries.csv') |> 
+  clean_names()
+
+country_regions <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-09-12/country_regions.csv') |> 
+  clean_names()
+
+# Set graph theme
+theme_set(theme_minimal()) +
+  theme_update(
+    plot.caption = element_text(hjust = 0))
+
+```
+
+
+## Initial thoughts
+
+Looking at the data in the two data frames, my first thoughts are that I will join them together so that I can get `country_name` into the `all_countries` data set.
+
+```{r}
+
+all_countries |> 
+  head(5) |>
+  kable()
+
+
+country_regions |> 
+  head(5) |> 
+  kable()
+
+
+```
+
+I also want to peak at the different options for categories and subcategories:
+
+```{r}
+
+all_countries |> 
+  distinct(category, subcategory) |> 
+  arrange_all() |> 
+  kable()
+
+```
+
+# Joining the two data sets
+
+The below `left_join` will add `country_name` to the `all_countries` data set. I'm also going to get rid of some variables I won't be needing and `arrange` the data set.
+
+```{r}
+
+all_countries <- all_countries |>
+  left_join(
+    country_regions |>
+      select(country_iso3,
+             country_name),
+    by = "country_iso3") |> 
+    select(country_name,
+         category,
+         subcategory,
+         hours_per_day_combined) |> 
+  arrange(country_name,
+          category,
+          subcategory)
+
+all_countries |> 
+  head(5) |> 
+  kable()
+
+```
+
+
+# Add an hour variable for the `category`
+
+The `hours_per_day_combined` variable goes with the `subcategory` variable. I am going to create an hour variable for the `category` variable.
+
+```{r}
+
+all_countries <- all_countries |> 
+  rename(subcategory_hours_per_day = hours_per_day_combined) |> 
+  group_by(country_name, category) |> 
+  mutate(category_hours_per_day = sum(subcategory_hours_per_day),
+         .after = subcategory) |> 
+  ungroup()
+
+all_countries |> 
+  head(10) |> 
+  kable()
+
+```
+
+
+# Visualize the two most different countries
+
+Which two countries have the most different days? And how do they compare?
+
+Modifying [this](https://stackoverflow.com/questions/67714078/how-to-get-the-pairwise-difference-of-all-values-within-uneven-categories-in-r) Stackoverflow topic, I am going to find the maximum pairwise difference between two countries and plot those two countries' days.
+
+```{r}
+
+country_pair_diff <- all_countries |> 
+  distinct(country_name,
+           category,
+           category_hours_per_day) |> 
+  group_by(category) |> 
+  reframe(result = combn(seq_along(category_hours_per_day), 2, function(i)
+    list(difference = diff(category_hours_per_day[i]),  #The difference
+         country_pair = paste0(country_name[i], collapse = '-')), # The pairs
+    simplify = FALSE)) |> 
+  unnest_wider(result) |> 
+  mutate(abs_difference = abs(difference)) |> 
+  group_by(country_pair) |> 
+  mutate(total_diff_country_pair = sum(abs_difference)) |> 
+  ungroup()
+
+country_pair_diff |> 
+  arrange(country_pair) |> 
+  head(10) |> 
+  kable()
+
+```
+
+
+Now I can find the two most different countries. They will have the largest `total_diff_country_pair`.
+
+```{r}
+
+country_pair_diff |> 
+  distinct(country_pair,
+           total_diff_country_pair) |> 
+  arrange(-total_diff_country_pair) |> 
+  head(20) |> 
+  kable()
+
+```
+
+# Graphing the two most different countries
+
+So, with our knowledge now that the DRC and Germany have the most different days, let's plot the difference to see what it looks like:
+
+```{r}
+
+all_countries |> 
+  filter(country_name %in% c("Democratic Republic of the Congo",
+                             "Germany")) |> 
+  distinct(country_name, category, .keep_all = TRUE) |> 
+  mutate(category = category |> 
+           as.factor() |> 
+           fct_reorder(category_hours_per_day)) |> 
+  ggplot() +
+  geom_col(aes(x = category,
+               y = category_hours_per_day,
+               fill = country_name),
+           position = "dodge2") +
+  labs(x = "Category",
+       y = "Hours per day",
+       fill = "Country name") +
+  coord_flip()
+
+```
+
+It looks like the DRC spends more time on `Deliberate neural restructuring`, which includes activities like religious practice and schooling and research, whereas Germany spends more time on `Experience oriented` activities, like active recreation, interactive, social, passive, and meals.
